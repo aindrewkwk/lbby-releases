@@ -18,8 +18,8 @@
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD  The key password.
 #
 # ── How to cut a release
-#   1. Tag the private repo as usual, e.g. `git tag v0.1.5 && git push --tags`.
-#   2. In lbby-releases → Actions → "Release" → Run workflow, enter `v0.1.5`.
+#   1. Tag the private repo as usual, e.g. `git tag v0.1.6 && git push --tags`.
+#   2. In lbby-releases → Actions → "Release" → Run workflow, enter `v0.1.6`.
 # ─────────────────────────────────────────────────────────────────────────────
 name: Release
 
@@ -27,7 +27,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Source tag in aindrewkwk/lbby-app to build (e.g. v0.1.5)"
+        description: "Source tag in aindrewkwk/lbby-app to build (e.g. v0.1.6)"
         required: true
 
 permissions:
