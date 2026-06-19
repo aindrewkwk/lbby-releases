@@ -95,7 +95,7 @@ jobs:
 
       - name: Sync Rust crate versions with NPM
         working-directory: src-tauri
-        run: cargo update -p tauri -p tauri-plugin-dialog -p tauri-plugin-updater -p tauri-plugin-process
+        run: cargo update
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
