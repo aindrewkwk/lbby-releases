@@ -92,7 +92,7 @@ jobs:
 
       - name: Pin NPM @tauri-apps versions to match Rust crates
         shell: bash
-        run: npm install --save-exact @tauri-apps/api@2.11.3 @tauri-apps/plugin-dialog@2.7.1 @tauri-apps/plugin-process@2.3.1 @tauri-apps/plugin-updater@2.10.1
+        run: npm install --save-exact @tauri-apps/api@2.11.1 @tauri-apps/plugin-dialog@2.7.1 @tauri-apps/plugin-process@2.3.1 @tauri-apps/plugin-updater@2.10.1
 
       - name: Install frontend dependencies
         run: npm ci
