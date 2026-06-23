@@ -1,0 +1,79 @@
+name: Announce Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    name: Post to Discord
+    steps:
+      - name: Send Discord announcement
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: "1516376449869676654"
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          NAME="${{ github.event.release.name }}"
+          BODY="${{ github.event.release.body }}"
+          URL="${{ github.event.release.html_url }}"
+          DATE="${{ github.event.release.published_at}}"
+
+          # Escape JSON special chars in body
+          BODY=$(echo "$BODY" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+
+          # Build Vietnamese announcement header
+          HEADER="🎉🎉🎉 **LBBY ${TAG} — CẬP NHẬT MỚI!** 🎉🎉🎉
+
+          Xin chào mọi người! Lbby vừa phát hành phiên bản **${TAG}**. Chi tiết bên dưới nhé!
+
+          "
+
+          # Build download table
+          DOWNLOADS="
+
+          ---
+
+          ## 📥 TẢI XUỐNG
+
+          | Nền tảng | File |
+          |---|---|
+          | macOS Apple Silicon | \`Lbby_*_aarch64.dmg\` |
+          | macOS Intel | \`Lbby_*_x64.dmg\` |
+          | Windows | \`Lbby_*_x64-setup.exe\` |
+          | Linux (AppImage) | \`Lbby_*_amd64.AppImage\` |
+          | Linux (Debian) | \`Lbby_*_amd64.deb\` |
+
+          👉 **Tải ngay tại:** ${URL}
+
+          ⚠️ *Ứng dụng chưa được ký trong giai đoạn beta:*
+          • *Windows SmartScreen:* nhấn *More info → Run anyway*
+          • *macOS Gatekeeper:* chuột phải → *Open* → *Open*
+
+          ---
+
+          Hãy thử nghiệm và đóng góp ý kiến nhé! Nếu gặp lỗi hoặc có đề xuất, hãy báo cáo trên GitHub. 🚀🔥"
+
+          # Combine: header + release body (already markdown) + download section
+          FULL_MSG="${HEADER}${BODY}${DOWNLOADS}"
+
+          # Discord has a 2000 char limit per message — split if needed
+          # Send as a single message first, split later if needed
+          PAYLOAD=$(python3 -c "
+          import json, sys
+          msg = '''${FULL_MSG}'''
+          # Truncate to 1990 chars to be safe
+          if len(msg) > 1990:
+              msg = msg[:1990] + '…\n\n👉 Xem đầy đủ tại: ${URL}'
+          print(json.dumps({'content': msg}))
+          ")
+
+          curl -s -X POST \
+            "https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages" \
+            -H "Authorization: Bot ${DISCORD_BOT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
