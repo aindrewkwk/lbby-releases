@@ -91,12 +91,8 @@ jobs:
             libssl-dev
 
       - name: Pin NPM @tauri-apps versions to match Rust crates
-        run: |
-          npm install --save-exact \
-            @tauri-apps/api@2.9.1 \
-            @tauri-apps/plugin-dialog@2.6.0 \
-            @tauri-apps/plugin-process@2.2.0 \
-            @tauri-apps/plugin-updater@2.9.0
+        shell: bash
+        run: npm install --save-exact @tauri-apps/api@2.11.3 @tauri-apps/plugin-dialog@2.7.1 @tauri-apps/plugin-process@2.3.1 @tauri-apps/plugin-updater@2.10.1
 
       - name: Install frontend dependencies
         run: npm ci
