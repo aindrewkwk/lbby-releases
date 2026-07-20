@@ -63,6 +63,54 @@ jobs:
           ref: ${{ github.event.inputs.tag }}
           token: ${{ secrets.SOURCE_REPO_TOKEN }}
 
+      - name: Validate version matches tag
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          # Validate tag format (vX.Y.Z only — reject anything with shell metacharacters)
+          if ! echo "$INPUT_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "❌ Tag '$INPUT_TAG' does not match expected format vX.Y.Z"
+            exit 1
+          fi
+
+          TAG_VERSION="${INPUT_TAG#v}"
+
+          CARGO_VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          PKG_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          TAURI_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"\(.*\)".*/\1/')
+
+          echo "Tag version:       ${TAG_VERSION}"
+          echo "Cargo.toml:        ${CARGO_VERSION}"
+          echo "package.json:      ${PKG_VERSION}"
+          echo "tauri.conf.json:   ${TAURI_VERSION}"
+
+          FAILED=0
+          if [ "${CARGO_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "❌ Cargo.toml version (${CARGO_VERSION}) does not match tag (${TAG_VERSION})"
+            FAILED=1
+          fi
+          if [ "${PKG_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "❌ package.json version (${PKG_VERSION}) does not match tag (${TAG_VERSION})"
+            FAILED=1
+          fi
+          if [ "${TAURI_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "❌ tauri.conf.json version (${TAURI_VERSION}) does not match tag (${TAG_VERSION})"
+            FAILED=1
+          fi
+          if [ "${CARGO_VERSION}" != "${PKG_VERSION}" ] || [ "${PKG_VERSION}" != "${TAURI_VERSION}" ]; then
+            echo "❌ Version sources disagree with each other"
+            FAILED=1
+          fi
+
+          if [ "${FAILED}" -eq 1 ]; then
+            echo ""
+            echo "ABORT: Version mismatch detected. Bump version in all three files before tagging."
+            exit 1
+          fi
+
+          echo "✅ All version sources match tag ${INPUT_TAG}"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
