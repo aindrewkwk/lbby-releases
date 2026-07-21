@@ -62,9 +62,9 @@ jobs:
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          # Validate tag format (vX.Y.Z only — reject anything with shell metacharacters)
-          if ! echo "$INPUT_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "❌ Tag '$INPUT_TAG' does not match expected format vX.Y.Z"
+          # Validate tag format (vX.Y.Z or vX.Y.Z-rc.N)
+          if ! echo "$INPUT_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
+            echo "❌ Tag '$INPUT_TAG' does not match expected format vX.Y.Z or vX.Y.Z-rc.N"
             exit 1
           fi
 
@@ -157,5 +157,5 @@ jobs:
             The app is unsigned during beta:
             - **Windows SmartScreen:** click *More info → Run anyway*.
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(github.event.inputs.tag, '-rc.') }}
           args: ${{ matrix.args }}
