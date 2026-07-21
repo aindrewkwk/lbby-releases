@@ -68,7 +68,9 @@ jobs:
             exit 1
           fi
 
+          # Strip leading 'v' and any -rc.N suffix for version comparison
           TAG_VERSION="${INPUT_TAG#v}"
+          TAG_VERSION="${TAG_VERSION%-rc.*}" 
 
           CARGO_VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
           PKG_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\(.*\)".*/\1/')
