@@ -39,12 +39,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
-            label: macOS (Apple Silicon)
-          - platform: macos-latest
-            args: "--target x86_64-apple-darwin"
-            label: macOS (Intel)
           - platform: windows-latest
             args: ""
             label: Windows
@@ -119,8 +113,6 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -155,15 +147,12 @@ jobs:
 
             | Platform | File |
             |---|---|
-            | macOS Apple Silicon | `Lbby_*_aarch64.dmg` |
-            | macOS Intel | `Lbby_*_x64.dmg` |
             | Windows | `Lbby_*_x64-setup.exe` |
             | Linux (AppImage) | `lbby_*_amd64.AppImage` |
             | Linux (Debian) | `lbby_*_amd64.deb` |
 
             The app is unsigned during beta:
             - **Windows SmartScreen:** click *More info → Run anyway*.
-            - **macOS Gatekeeper:** right-click the app → *Open* → *Open*.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

@@ -42,8 +42,6 @@ jobs:
 
           | Nền tảng | File |
           |---|---|
-          | macOS Apple Silicon | \`Lbby_*_aarch64.dmg\` |
-          | macOS Intel | \`Lbby_*_x64.dmg\` |
           | Windows | \`Lbby_*_x64-setup.exe\` |
           | Linux (AppImage) | \`Lbby_*_amd64.AppImage\` |
           | Linux (Debian) | \`Lbby_*_amd64.deb\` |
@@ -52,7 +50,6 @@ jobs:
 
           ⚠️ *Ứng dụng chưa được ký trong giai đoạn beta:*
           • *Windows SmartScreen:* nhấn *More info → Run anyway*
-          • *macOS Gatekeeper:* chuột phải → *Open* → *Open*
 
           ---
 
