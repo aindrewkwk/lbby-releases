@@ -62,15 +62,16 @@ jobs:
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
         run: |
-          # Validate tag format (vX.Y.Z or vX.Y.Z-rc.N)
-          if ! echo "$INPUT_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'; then
-            echo "❌ Tag '$INPUT_TAG' does not match expected format vX.Y.Z or vX.Y.Z-rc.N"
+          # Validate tag format (vX.Y.Z, vX.Y.Z-rc.N, or vX.Y.Z-beta.N)
+          if ! echo "$INPUT_TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+|-beta\.[0-9]+)?$'; then
+            echo "❌ Tag '$INPUT_TAG' does not match expected format vX.Y.Z, vX.Y.Z-rc.N, or vX.Y.Z-beta.N"
             exit 1
           fi
 
-          # Strip leading 'v' and any -rc.N suffix for version comparison
+          # Strip leading 'v' and any -rc.N/-beta.N suffix for version comparison
           TAG_VERSION="${INPUT_TAG#v}"
-          TAG_VERSION="${TAG_VERSION%-rc.*}" 
+          TAG_VERSION="${TAG_VERSION%-rc.*}"
+          TAG_VERSION="${TAG_VERSION%-beta.*}" 
 
           CARGO_VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
           PKG_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\(.*\)".*/\1/')
@@ -159,5 +160,5 @@ jobs:
             The app is unsigned during beta:
             - **Windows SmartScreen:** click *More info → Run anyway*.
           releaseDraft: false
-          prerelease: ${{ contains(github.event.inputs.tag, '-rc.') }}
+          prerelease: ${{ contains(github.event.inputs.tag, '-rc.') || contains(github.event.inputs.tag, '-beta.') }}
           args: ${{ matrix.args }}
