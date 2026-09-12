@@ -34,18 +34,9 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            args: ""
-            label: Windows
-
-    runs-on: ${{ matrix.platform }}
-    name: Build (${{ matrix.label }})
-
+  verify:
+    runs-on: ubuntu-22.04
+    name: Pre-publish verification
     steps:
       - name: Checkout private source
         uses: actions/checkout@v4
@@ -104,6 +95,103 @@ jobs:
           fi
 
           echo "✅ All version sources match tag ${INPUT_TAG}"
+
+      - name: Log source tag → resolved SHA
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          RESOLVED_SHA=$(git rev-parse HEAD)
+          echo "Source tag:  ${INPUT_TAG}"
+          echo "Resolved SHA: ${RESOLVED_SHA}"
+          echo "commit_sha=${RESOLVED_SHA}" >> "$GITHUB_ENV"
+
+      - name: Verify lbby-core rev integrity
+        shell: bash
+        run: |
+          # Extract pinned core rev from Cargo.toml
+          CORE_REV=$(grep -A1 'lbby-core' src-tauri/Cargo.toml | grep 'rev' | sed 's/.*"\([a-f0-9]*\)".*/\1/')
+          echo "Pinned lbby-core rev: ${CORE_REV}"
+
+          if [ -z "${CORE_REV}" ]; then
+            echo "❌ lbby-core rev not found in Cargo.toml"
+            exit 1
+          fi
+
+          # Verify Cargo.lock resolves to the same rev
+          LOCK_SOURCE=$(grep -A2 'lbby-core' src-tauri/Cargo.lock | grep 'source' | head -1)
+          if echo "${LOCK_SOURCE}" | grep -q "${CORE_REV}"; then
+            echo "✅ Cargo.lock resolves to the same core rev"
+          else
+            echo "❌ Cargo.lock core rev mismatch"
+            echo "  Cargo.toml rev: ${CORE_REV}"
+            echo "  Cargo.lock: ${LOCK_SOURCE}"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Frontend build
+        run: npm run build
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: verify-${{ runner.os }}
+
+      - name: Cargo fmt check
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Cargo check
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Cargo test
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify source is clean
+        shell: bash
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Source tree is dirty after build — files were modified"
+            git status --short
+            exit 1
+          fi
+          echo "✅ Source tree is clean"
+
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ""
+            label: Windows
+
+    runs-on: ${{ matrix.platform }}
+    name: Build (${{ matrix.label }})
+
+    steps:
+      - name: Checkout private source
+        uses: actions/checkout@v4
+        with:
+          repository: aindrewkwk/lbby-app
+          ref: ${{ github.event.inputs.tag }}
+          token: ${{ secrets.SOURCE_REPO_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
