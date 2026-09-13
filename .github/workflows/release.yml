@@ -178,6 +178,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+            label: macOS
+          - platform: ubuntu-22.04
+            args: ""
+            label: Linux
           - platform: windows-latest
             args: ""
             label: Windows
@@ -227,10 +233,9 @@ jobs:
 
             | Platform | File |
             |---|---|
+            | macOS (Apple Silicon) | `Lbby_*_aarch64.dmg` |
+            | Linux (x86_64) | `Lbby_*_amd64.deb` / `Lbby_*_amd64.AppImage` |
             | Windows | `Lbby_*_x64-setup.exe` |
-
-            The app is unsigned during beta:
-            - **Windows SmartScreen:** click *More info → Run anyway*.
           releaseDraft: false
           prerelease: ${{ contains(github.event.inputs.tag, '-rc.') || contains(github.event.inputs.tag, '-beta.') }}
           args: ${{ matrix.args }}
