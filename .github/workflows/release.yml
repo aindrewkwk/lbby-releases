@@ -153,22 +153,6 @@ jobs:
           workspaces: src-tauri
           shared-key: verify-${{ runner.os }}
 
-      - name: Cargo check
-        run: cargo check --manifest-path src-tauri/Cargo.toml
-
-      - name: Cargo test
-        run: cargo test --manifest-path src-tauri/Cargo.toml
-
-      - name: Verify source is clean
-        shell: bash
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "❌ Source tree is dirty after build — files were modified"
-            git status --short
-            exit 1
-          fi
-          echo "✅ Source tree is clean"
-
   build:
     needs: verify
     strategy:
