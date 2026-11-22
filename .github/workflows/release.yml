@@ -48,7 +48,9 @@ jobs:
       - name: Verify lbby-core rev integrity
         shell: bash
         run: |
-          CORE_REV=$(grep -A1 'lbby-core' src-tauri/Cargo.toml | grep 'rev' | sed 's/.*"\([a-f0-9]*\)".*/\1/')
+          CORE_REVS=$(grep '^lbby-core = ' src-tauri/Cargo.toml | sed -n 's/.*rev = "\([a-f0-9]*\)".*/\1/p' | sort -u)
+          [ "$(echo "$CORE_REVS" | wc -l)" -eq 1 ] || { echo "❌ Core dependency revisions differ"; exit 1; }
+          CORE_REV="$CORE_REVS"
           echo "Pinned core rev: $CORE_REV"
           [ -z "$CORE_REV" ] && echo "❌ No core rev" && exit 1
           LOCK_SOURCE=$(grep -A2 'lbby-core' src-tauri/Cargo.lock | grep 'source' | head -1)
@@ -142,6 +144,31 @@ jobs:
             | macOS (Apple Silicon) | `Lbby_*_aarch64.dmg` |
             | Linux (x86_64) | `Lbby_*_amd64.deb` / `Lbby_*_amd64.AppImage` |
             | Windows | `Lbby_*_x64-setup.exe` |
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    name: Publish after all builds succeed
+    steps:
+      - name: Verify release assets and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.inputs.tag }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > /tmp/lbby-assets.txt
+          for pattern in '^latest\.json$' '_x64-setup\.exe$' '_x64-setup\.exe\.sig$' '_aarch64\.dmg$' '_aarch64\.app\.tar\.gz\.sig$' '_amd64\.deb$' '_amd64\.AppImage$' '_amd64\.AppImage\.sig$'; do
+            grep -Eq "$pattern" /tmp/lbby-assets.txt || { echo "Missing release asset: $pattern"; exit 1; }
+          done
+          gh release download "$RELEASE_TAG" --pattern latest.json --dir "$RUNNER_TEMP" --clobber
+          jq -e --arg version "${RELEASE_TAG#v}" '
+            .version == $version and
+            (["darwin-aarch64", "linux-x86_64", "windows-x86_64"] | all(. as $platform |
+              ($manifest.platforms[$platform].signature | type == "string" and length > 0) and
+              ($manifest.platforms[$platform].url | type == "string" and length > 0)))
+          ' --argjson manifest "$(cat "$RUNNER_TEMP/latest.json")" "$RUNNER_TEMP/latest.json" >/dev/null
+          gh release edit "$RELEASE_TAG" --draft=false
